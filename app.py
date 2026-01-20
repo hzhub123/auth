@@ -87,7 +87,7 @@ def callback():
                 print(f"Erro no servidor {guild_id}: {response.text}")
 
         verified_users.add(int(user_id))
-        return "✅ Verificação concluída! Você foi adicionado aos servidores."
+        return "✅ Verificação concluída! cargo adicionado."
 
     except Exception as e:
         print("Erro no callback:", e)
@@ -99,3 +99,4 @@ def is_verified(user_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
