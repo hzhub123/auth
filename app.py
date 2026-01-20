@@ -26,7 +26,7 @@ TARGET_GUILDS = [
 ]
 
 # ID do cargo a ser dado (substitua pelo real)
-ROLE_ID = 123456789012345678  # ⚠️ coloque o ID real do cargo
+ROLE_ID = 1463059819811438801  # ⚠️ coloque o ID real do cargo
 
 # "Banco" simples em memória
 verified_users = set()
@@ -95,3 +95,4 @@ def is_verified(user_id):
 if __name__ == "__main__":
     # Para testes locais
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
