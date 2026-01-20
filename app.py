@@ -16,21 +16,17 @@ API_BASE = "https://discord.com/api"
 AUTH_URL = API_BASE + "/oauth2/authorize"
 TOKEN_URL = API_BASE + "/oauth2/token"
 
-# Scopes do OAuth
-SCOPES = ["identify"]
+# 1. ADICIONADO: Scope "guilds.join" para permitir entrar em servidores
+SCOPES = ["identify", "guilds.join"]
 
-# Servidores alvo
 TARGET_GUILDS = [
     1436831609189040161,  # Servidor 1
     1457835488902905869,  # Servidor 2
 ]
 
-# ID do cargo a ser dado (substitua pelo real)
-ROLE_ID = 1463059819811438801  # ⚠️ coloque o ID real do cargo
+ROLE_ID = 1463059819811438801  
 
-# "Banco" simples em memória
 verified_users = set()
-
 
 def make_session(token=None, state=None):
     return OAuth2Session(
@@ -41,7 +37,6 @@ def make_session(token=None, state=None):
         redirect_uri=REDIRECT_URI
     )
 
-
 @app.route("/")
 def login():
     discord = make_session()
@@ -49,11 +44,10 @@ def login():
     session["oauth_state"] = state
     return redirect(auth_url)
 
-
 @app.route("/callback")
 def callback():
     try:
-        discord = make_session(state=session["oauth_state"])
+        discord = make_session(state=session.get("oauth_state"))
         token = discord.fetch_token(
             TOKEN_URL,
             client_secret=CLIENT_SECRET,
@@ -61,38 +55,47 @@ def callback():
         )
 
         user = discord.get(API_BASE + "/users/@me").json()
-        user_id = int(user["id"])
+        user_id = user["id"]
+        access_token = token["access_token"] # Token do usuário para autorizar a entrada
 
-        # Marca como verificado
-        verified_users.add(user_id)
-
-        # Dar cargo em todos os servidores
-        headers = {
+        # Cabeçalho para o Bot (usado para adicionar o membro)
+        bot_headers = {
             "Authorization": f"Bot {BOT_TOKEN}",
             "Content-Type": "application/json"
         }
 
         for guild_id in TARGET_GUILDS:
-            url = f"{API_BASE}/guilds/{guild_id}/members/{user_id}/roles/{ROLE_ID}"
-            response = requests.put(url, headers=headers)
-            if response.status_code == 204:
-                print(f"Cargo dado com sucesso ao usuário {user_id} no servidor {guild_id}")
-            else:
-                print(f"Erro ao dar cargo {ROLE_ID} ao usuário {user_id} no servidor {guild_id}: {response.text}")
+            # 2. LÓGICA PARA ADICIONAR O USUÁRIO AO SERVIDOR
+            join_url = f"{API_BASE}/guilds/{guild_id}/members/{user_id}"
+            
+            # Dados necessários: o access_token que o usuário nos deu ao autorizar
+            join_data = {
+                "access_token": access_token,
+                "roles": [str(ROLE_ID)] # Adiciona o cargo opcionalmente já na entrada
+            }
 
-        return "✅ Verificação concluída! Você já recebeu o cargo no Discord."
+            response = requests.put(join_url, headers=bot_headers, json=join_data)
+
+            if response.status_code == 201:
+                print(f"Usuário {user_id} entrou e recebeu cargo no servidor {guild_id}")
+            elif response.status_code == 204:
+                print(f"Usuário {user_id} já estava no servidor. Tentando dar cargo...")
+                # Se ele já estava lá, apenas tentamos dar o cargo separadamente
+                role_url = f"{API_BASE}/guilds/{guild_id}/members/{user_id}/roles/{ROLE_ID}"
+                requests.put(role_url, headers=bot_headers)
+            else:
+                print(f"Erro no servidor {guild_id}: {response.text}")
+
+        verified_users.add(int(user_id))
+        return "✅ Verificação concluída! Você foi adicionado aos servidores."
 
     except Exception as e:
         print("Erro no callback:", e)
         return "❌ Ocorreu um erro durante a verificação."
 
-
 @app.route("/is_verified/<int:user_id>")
 def is_verified(user_id):
     return {"verified": user_id in verified_users}
 
-
 if __name__ == "__main__":
-    # Para testes locais
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
