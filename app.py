@@ -9,7 +9,8 @@ CLIENT_ID = os.environ["OAUTH2_CLIENT_ID"]
 CLIENT_SECRET = os.environ["OAUTH2_CLIENT_SECRET"]
 
 # ⚠️ TROQUE pela URL do Render
-REDIRECT_URI = "https://SEU-APP.onrender.com/callback"
+REDIRECT_URI = "https://auth-9801.onrender.com/callback"
+
 
 API_BASE = "https://discord.com/api"
 AUTH_URL = API_BASE + "/oauth2/authorize"
@@ -56,3 +57,4 @@ def callback():
 @app.route("/is_verified/<int:user_id>")
 def is_verified(user_id):
     return {"verified": user_id in verified_users}
+
